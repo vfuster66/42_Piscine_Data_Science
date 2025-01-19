@@ -10,17 +10,8 @@ Créer une table "items" basée sur le fichier items.csv en utilisant au moins 3
 3. `TEXT` : pour category_code
 4. `VARCHAR(50)` : pour brand
 
-## Deux méthodes d'implémentation
-1. Méthode SQL
-```bash
-# Se connecter à la base de données
-psql -U vfuster -d piscineds -h localhost -W
+## Implémentation
 
-# Exécuter le script SQL
-\i items_table.sql
-```
-
-2. Méthode Python
 ```bash
 # S'assurer que les dépendances sont installées
 pip install psycopg2-binary pandas

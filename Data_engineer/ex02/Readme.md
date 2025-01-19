@@ -25,7 +25,6 @@ La table est créée avec les colonnes suivantes :
 
 ## Utilisation
 
-### Méthode 1 : Avec Python
 ```
 python3 table.py
 ```
@@ -36,13 +35,6 @@ Le script Python :
 2. Crée la table si elle n'existe pas
 3. Affiche un message de confirmation
 4. Ferme la connexion
-
-### Méthode 2 : Avec SQL direct
-```
-psql -U vfuster -d piscineds -h localhost -W
-
-\i table.sql
-```
 
 ## Vérification
 1. Connexion à la base de données :
