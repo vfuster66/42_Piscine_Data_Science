@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:14
+    container_name: piscineds_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: vfuster
+      POSTGRES_PASSWORD: Bonjour42
+      POSTGRES_DB: piscineds
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+
+  app:
+    build:
+      context: .
+    container_name: piscineds_app
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      - PYTHONPATH=/app
+    command: sleep infinity
+
+volumes:
+  pgdata:

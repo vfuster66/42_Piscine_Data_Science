@@ -1,0 +1,5 @@
+CREATE DATABASE piscineds;
+
+CREATE USER vfuster WITH PASSWORD 'Bonjour42';
+
+GRANT ALL PRIVILEGES ON DATABASE piscineds TO vfuster;

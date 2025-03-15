@@ -1,118 +1,94 @@
 import os
 import psycopg2
 import pandas as pd
-from psycopg2 import Error
-from io import StringIO
+from printer import Printer
+
+printer = Printer()
+
+DB_PARAMS = {
+    'dbname': 'piscineds',
+    'user': 'vfuster',
+    'password': 'Bonjour42',
+    'host': 'db'
+}
+
+CUSTOMER_DIR = 'customer/'
 
 
-def get_csv_files(directory):
-    """Récupère tous les fichiers CSV du dossier 'customer'"""
-    csv_files = []
+def create_table(cursor, table_name, df):
+    columns = []
+    for col in df.columns:
+        if 'date' in col.lower() or 'time' in col.lower():
+            columns.append(f'"{col}" TIMESTAMP')
+        elif df[col].dtype == 'int64':
+            columns.append(f'"{col}" INTEGER')
+        elif df[col].dtype == 'float64':
+            columns.append(f'"{col}" FLOAT')
+        else:
+            columns.append(f'"{col}" TEXT')
+
+    query = (
+        f'CREATE TABLE IF NOT EXISTS "{table_name}" '
+        f'({", ".join(columns)});'
+    )
+    printer.info(f"Création de la table : {table_name}")
+    printer.info(f"Requête SQL : {query}")
+    cursor.execute(query)
+
+
+def import_csv_with_copy(cursor, table_name, file_path):
+    printer.section(f"Import de {file_path} via COPY dans {table_name}")
+    with open(file_path, 'r') as f:
+        next(f)  # skip header
+        cursor.copy_expert(f'COPY "{table_name}" FROM STDIN WITH CSV', f)
+    printer.success(f"Import terminé pour {table_name}")
+
+
+def import_all_csv():
     try:
-        for file in os.listdir(directory):
-            if file.endswith('.csv'):
-                csv_files.append(os.path.join(directory, file))
-        return csv_files
-    except Exception as e:
-        print(f"Erreur lors de la lecture du dossier : {e}")
-        return []
+        conn = psycopg2.connect(**DB_PARAMS)
+        cursor = conn.cursor()
+        printer.title("Import automatique des CSV du dossier 'customer/'")
 
+        files = [f for f in os.listdir(CUSTOMER_DIR) if f.endswith('.csv')]
 
-def create_table_name(csv_path):
-    """Crée le nom de la table à partir du nom du fichier CSV"""
-    base_name = os.path.basename(csv_path)
-    return os.path.splitext(base_name)[0]
+        if not files:
+            printer.warning(
+                "Aucun fichier CSV trouvé dans le dossier customer/"
+            )
+            return
 
+        for file_name in files:
+            table_name = os.path.splitext(file_name)[0]
+            file_path = os.path.join(CUSTOMER_DIR, file_name)
 
-def table_exists_and_has_data(cursor, table_name):
-    """Vérifie si la table existe et contient des données"""
-    # Vérifier si la table existe
-    cursor.execute("""
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_name = %s
-        );
-    """, (table_name,))
+            printer.section(f"Traitement du fichier {file_name}")
 
-    if not cursor.fetchone()[0]:
-        return False
+            # Lire les colonnes pour créer la table
+            df = pd.read_csv(file_path, nrows=1)
+            create_table(cursor, table_name, df)
+            conn.commit()
 
-    # Vérifier si la table contient des données
-    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-    count = cursor.fetchone()[0]
-    return count > 0
+            # Importer le CSV complet
+            import_csv_with_copy(cursor, table_name, file_path)
+            conn.commit()
 
-
-def create_and_populate_tables():
-    connection = None
-    try:
-        connection = psycopg2.connect(
-            database="piscineds",
-            user="vfuster",
-            password="Bonjour42",
-            host="localhost",
-            port="5432"
+        printer.success(
+            "✅ Tous les fichiers CSV ont été importés avec succès."
         )
 
-        cursor = connection.cursor()
-        csv_files = get_csv_files('./customer')
-
-        for csv_file in csv_files:
-            table_name = create_table_name(csv_file)
-            print(f"\nTraitement de {table_name}")
-
-            # Vérifier si la table existe et contient des données
-            if table_exists_and_has_data(cursor, table_name):
-                print(f"La table {table_name} existe déjà et contient des "
-                      f"données. Passage à la suivante.")
-                continue
-
-            # Création de la table
-            create_table_query = f'''
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                event_time TIMESTAMP WITH TIME ZONE,
-                event_type VARCHAR(50),
-                product_id INTEGER,
-                price DECIMAL(10,2),
-                user_id BIGINT,
-                user_session UUID
-            );
-            '''
-            cursor.execute(create_table_query)
-            print(f"Table {table_name} créée avec succès")
-
-            try:
-                df = pd.read_csv(csv_file)
-                print(f"Nombre de lignes lues depuis {csv_file} : {len(df)}")
-
-                output = StringIO()
-                df.to_csv(output, sep='\t', header=False, index=False)
-                output.seek(0)
-
-                cursor.copy_from(
-                    output,
-                    table_name,
-                    null='',
-                    columns=df.columns
-                )
-
-                connection.commit()
-                print(f"Données importées avec succès dans {table_name}")
-
-            except Exception as e:
-                print(f"Erreur lors de l'importation des données pour "
-                      f"{table_name}: {e}")
-                connection.rollback()
-
-    except (Exception, Error) as error:
-        print(f"Erreur PostgreSQL : {error}")
+    except Exception as e:
+        printer.error(f"Erreur durant l'import automatique : {e}")
 
     finally:
-        if connection:
-            cursor.close()
-            connection.close()
-            print("\nConnexion PostgreSQL fermée")
+        cursor.close()
+        conn.close()
+        printer.info("Connexion PostgreSQL fermée.")
+
+
+def main():
+    import_all_csv()
 
 
 if __name__ == "__main__":
-    create_and_populate_tables()
+    main()
