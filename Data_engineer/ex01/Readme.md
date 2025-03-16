@@ -19,6 +19,7 @@ brew install --cask dbeaver-community
 # https://dbeaver.io/download/
 ```
 
+
 ## Configuration de la connexion
 
 1. Lancer DBeaver
@@ -39,13 +40,14 @@ brew install --cask dbeaver-community
 
 6. Sauvegarder la configuration
 
-## Fonctionnalités à tester
+## Vérifications attendues
 
+- La connexion à la base `piscineds` est opérationnelle
 - Navigation dans l'arborescence des tables
 - Visualisation de la structure des tables (colonnes, types)
-- Exécution de requêtes SQL simples
+- Exécution de requêtes SQL simples (SELECT)
 - Visualisation des données dans un format tabulaire
-- Identification des données via leur ID
+- Identification des données via leur ID dans les interfaces
 
 ## Avantages de DBeaver
 

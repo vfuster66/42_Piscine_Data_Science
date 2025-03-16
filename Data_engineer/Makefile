@@ -1,51 +1,49 @@
-# ➤ CONFIGURATION
-DOCKER_RUN = docker-compose exec app
+.PHONY: build run clean shell \
+        run-ex00 run-ex01 run-ex02 run-ex03 run-ex04 \
+        test-ex00 test-ex01 test-ex02 test-ex03 test-ex04 all-tests
 
-# ➤ BUILD
+# Variables d'environnement (à adapter si besoin)
+PGHOST = host.docker.internal
+PGUSER = vfuster
+PGPORT = 5432
+PGDATABASE = piscineds
+PGPASSWORD = Bonjour42
+
 build:
-	docker-compose up -d --build
+	docker-compose build
 
-# ➤ CLEAN & PURGE
+# Shell interactif (bash dans le container Python)
+shell:
+	PGHOST=$(PGHOST) docker-compose run python bash
+
+# Se connecter à PostgreSQL via psql depuis Docker (pour debug)
+psql:
+	docker run -it --rm postgres:15-alpine psql -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -d $(PGDATABASE)
+
+# Nettoyer le container
 clean:
-	docker-compose down -v
-	docker system prune -f
+	docker-compose down
 
-purge:
-	docker-compose down -v --rmi all --remove-orphans
-	docker system prune -f
+# Commandes pour exécuter chaque script Python
+run-ex02:
+	PGHOST=$(PGHOST) docker-compose run python python ex02/table.py
 
-# ➤ GLOBAL TESTS
-test_all:
-	@$(DOCKER_RUN) pytest tests/
+run-ex03:
+	PGHOST=$(PGHOST) docker-compose run python python ex03/automatic_table.py
 
-# ================================
-# ➤ EXERCISE TARGETS TEMPLATE
-# ================================
+run-ex04:
+	PGHOST=$(PGHOST) docker-compose run python python ex04/items_table.py
 
-define EX_TEMPLATE
-run_ex$(1):
-	@$(DOCKER_RUN) python ex$(1)/tester.py
+# Commandes pour exécuter les tests unitaires
+test-ex02:
+	PGHOST=$(PGHOST) docker-compose run python pytest tests/test_02.py
 
-test_$(1):
-	@$(DOCKER_RUN) pytest -s -v tests/test_$(1).py
-endef
+test-ex03:
+	PGHOST=$(PGHOST) docker-compose run python pytest tests/test_03.py
 
-$(foreach n,00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15,$(eval $(call EX_TEMPLATE,$(n))))
+test-ex04:
+	PGHOST=$(PGHOST) docker-compose run python pytest tests/test_04.py
 
-# ➤ HELP
-help:
-	@echo ""
-	@echo "⚙️  USAGE"
-	@echo "--------------------------------------"
-	@echo " build          -> docker-compose up -d --build"
-	@echo " clean          -> docker-compose down -v && prune"
-	@echo " purge          -> docker-compose down -v --rmi all --remove-orphans"
-	@echo " test_all       -> Run all unit tests (pytest)"
-	@echo ""
-	@echo "🏃‍♂️ Run examples"
-	@echo " run_ex00       -> Run ex00 tester.py"
-	@echo " test_ex00      -> Run pytest for ex00"
-	@echo " run_ex01       -> Run ex01 tester.py"
-	@echo " test_ex01      -> Run pytest for ex01"
-	@echo " ..."
-	@echo "--------------------------------------"
+# Commande pour exécuter tous les tests
+all-tests:
+	PGHOST=$(PGHOST) docker-compose run python pytest tests/

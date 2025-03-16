@@ -1,11 +1,13 @@
+
 # Exercise 00 : Create postgres DB
 
 ## Objectif
-L'objectif de cet exercice est de créer une base de données PostgreSQL avec des paramètres spécifiques qui sera utilisée tout au long du module pour stocker et manipuler les données de vente.
+L'objectif de cet exercice est de créer une base de données PostgreSQL avec des paramètres spécifiques, qui sera utilisée tout au long du module pour stocker et manipuler les données de vente.
 
-## Configuration requise
-- PostgreSQL installé sur la machine
-- Accès aux droits administrateur pour la création de la base de données
+## Prérequis
+- PostgreSQL 14 ou supérieur installé localement
+- PostgreSQL accessible via `localhost` sur le port `5432`
+- Accès administrateur à l'utilisateur `postgres`
 
 ## Paramètres de la base de données
 - Nom de la base de données : `piscineds`
@@ -14,14 +16,20 @@ L'objectif de cet exercice est de créer une base de données PostgreSQL avec de
 
 ## Configuration initiale
 
-1. Se connecter en tant que postgres :
-```
+### 1. Se connecter en tant que `postgres` :
+```bash
 psql -U postgres
 ```
 
-2. Créer la base de données et l'utilisateur : 
-- Supprimer l'ancienne base si elle existe (et ses connexions)
+### 2. Créer l'utilisateur `vfuster` (si besoin) :
+```sql
+DROP ROLE IF EXISTS vfuster;
+CREATE ROLE vfuster WITH LOGIN PASSWORD 'Bonjour42';
+ALTER ROLE vfuster CREATEDB;
 ```
+
+### 3. Supprimer l'ancienne base si elle existe (et forcer la fermeture des connexions) :
+```sql
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = 'piscineds'
@@ -30,45 +38,43 @@ AND pid <> pg_backend_pid();
 DROP DATABASE IF EXISTS piscineds;
 ```
 
-- Créer la nouvelle base
-```
-CREATE DATABASE piscineds;
-```
-
-3. Configuration des droits : 
-- Donner tous les droits à l'utilisateur
-```
-GRANT ALL PRIVILEGES ON DATABASE piscineds TO vfuster;
+### 4. Créer la nouvelle base de données :
+```sql
+CREATE DATABASE piscineds OWNER vfuster;
 ```
 
-- Se connecter à la base piscineds
-```
+### 5. Configuration des droits :
+
+#### Se connecter à la base :
+```sql
 \c piscineds
 ```
 
-- Donner les droits sur le schema public
-```
+#### Donner tous les droits sur le schéma public :
+```sql
 GRANT ALL ON SCHEMA public TO vfuster;
 ```
 
-- Configurer les droits par défaut
-```
+#### Configurer les droits par défaut :
+```sql
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO vfuster;
 ```
 
 ## Vérification
-Pour vérifier que la base de données est correctement configurée, exécutez la commande suivante :
+
+Pour vérifier que la base de données est correctement configurée, exécutez la commande suivante dans un terminal :
 ```bash
 psql -U vfuster -d piscineds -h localhost -W
 ```
 
-Si la connexion s'établit après avoir saisi le mot de passe `Bonjour42`, cela signifie que :
-
-La base de données existe
-L'utilisateur est correctement configuré
-Les permissions sont correctement attribuées
+Mot de passe ➔ `Bonjour42`
 
 Le prompt PostgreSQL devrait apparaître ainsi :
-```
+```sql
 piscineds=#
 ```
+
+---
+
+## Remarques
+La base `piscineds` servira de support tout au long des exercices du module **Data_Engineer** et des modules suivants comme **Data_Warehouse** et **Data_Analyst**.
